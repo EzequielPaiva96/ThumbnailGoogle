@@ -12,65 +12,63 @@
             font-family: 'Inter', sans-serif;
             background-color: #f0f2f5; /* Cor de fundo suave */
         }
+        /* Estilos para a barra de rolagem do textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
-            Conversor de Miniaturas do Google Drive
+            Conversor de Miniaturas do Google Drive (Lote)
         </h1>
 
         <div class="mb-6">
-            <label for="driveLink" class="block text-gray-700 text-sm font-medium mb-2">
-                Cole o link do Google Drive aqui:
+            <label for="driveLinks" class="block text-gray-700 text-sm font-medium mb-2">
+                Cole os links do Google Drive aqui (um por linha ou separados por vírgula):
             </label>
-            <input
-                type="text"
-                id="driveLink"
-                placeholder="Ex: https://drive.google.com/file/d/1-YxGYx6eYBwQ3Rq1KlFYj5Kx3OLE4bKr/view?usp=drive_link"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-            />
+            <textarea
+                id="driveLinks"
+                rows="6"
+                placeholder="Ex:
+https://drive.google.com/file/d/1CTAcx3SjgyehyfH0kecrirCw0riCRT41/view?usp=drive_link,
+https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive_link"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 resize-y"
+            ></textarea>
         </div>
 
         <button
             id="convertButton"
             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
         >
-            Converter para Miniatura
+            Converter para Miniaturas
         </button>
 
-        <div id="resultArea" class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Miniatura Gerada:</h2>
+        <!-- Container para os resultados individuais, agora com Flexbox -->
+        <div id="resultsContainer" class="mt-8 flex flex-wrap justify-center gap-6">
+            <!-- Os resultados individuais serão adicionados aqui pelo JavaScript -->
+        </div>
 
-            <div class="mb-4">
-                <label for="thumbnailLink" class="block text-gray-700 text-sm font-medium mb-2">
-                    Link da Miniatura:
-                </label>
-                <input
-                    type="text"
-                    id="thumbnailLink"
-                    readonly
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-text focus:outline-none"
-                />
-            </div>
-
+        <div id="batchCopyArea" class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Opções de Cópia em Lote:</h2>
             <button
-                id="copyButton"
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+                id="copyAllButton"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75"
             >
-                Copiar Link da Miniatura
+                Copiar TODOS os Links de Miniatura
             </button>
-
-            <div class="mt-6 text-center">
-                <p class="text-gray-700 text-sm font-medium mb-2">Pré-visualização da Miniatura:</p>
-                <img
-                    id="thumbnailPreview"
-                    src=""
-                    alt="Pré-visualização da Miniatura"
-                    class="max-w-full h-auto rounded-lg shadow-md mx-auto border border-gray-300"
-                    onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Erro+ao+Carregar+Miniatura';"
-                />
-            </div>
         </div>
 
         <div id="messageBox" class="mt-6 p-4 rounded-lg text-center text-sm hidden"></div>
@@ -78,12 +76,11 @@
 
     <script>
         // Obtém referências aos elementos HTML
-        const driveLinkInput = document.getElementById('driveLink');
+        const driveLinksInput = document.getElementById('driveLinks');
         const convertButton = document.getElementById('convertButton');
-        const resultArea = document.getElementById('resultArea');
-        const thumbnailLinkInput = document.getElementById('thumbnailLink');
-        const copyButton = document.getElementById('copyButton');
-        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const batchCopyArea = document.getElementById('batchCopyArea');
+        const copyAllButton = document.getElementById('copyAllButton');
         const messageBox = document.getElementById('messageBox');
 
         // Função para exibir mensagens ao usuário
@@ -105,56 +102,131 @@
             messageBox.classList.add('hidden');
         }
 
+        // Função para copiar texto para a área de transferência
+        function copyToClipboard(text, successMessage, errorMessage) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+
+            try {
+                document.execCommand('copy');
+                showMessage(successMessage, 'success');
+            } catch (err) {
+                showMessage(errorMessage, 'error');
+                console.error('Erro ao copiar: ', err);
+            } finally {
+                document.body.removeChild(tempInput);
+            }
+        }
+
         // Adiciona um ouvinte de evento ao botão de conversão
         convertButton.addEventListener('click', () => {
             hideMessage(); // Oculta mensagens anteriores
-            const originalLink = driveLinkInput.value.trim();
+            resultsContainer.innerHTML = ''; // Limpa resultados anteriores
+            batchCopyArea.classList.add('hidden'); // Oculta o botão de cópia em lote
 
-            // Verifica se o link não está vazio
-            if (!originalLink) {
-                showMessage('Por favor, insira um link do Google Drive.', 'error');
-                resultArea.classList.add('hidden');
+            const rawLinks = driveLinksInput.value.trim();
+
+            if (!rawLinks) {
+                showMessage('Por favor, insira um ou mais links do Google Drive.', 'error');
                 return;
             }
 
-            // Expressão regular para extrair o ID do arquivo do Google Drive
-            // Suporta links como:
-            // - https://drive.google.com/file/d/FILE_ID/view
-            // - https://drive.google.com/open?id=FILE_ID
-            // - https://docs.google.com/document/d/FILE_ID/edit
-            const fileIdMatch = originalLink.match(/(?:id=|d\/)([a-zA-Z0-9_-]+)/);
+            // Divide os links por vírgula ou nova linha e filtra entradas vazias
+            const linksArray = rawLinks.split(/[\n,]+/).map(link => link.trim()).filter(link => link !== '');
 
-            if (fileIdMatch && fileIdMatch[1]) {
-                const fileId = fileIdMatch[1];
-                // Constrói o novo link da miniatura
-                const thumbnailLink = `https://drive.google.com/thumbnail?sz=w1000&id=${fileId}`;
+            if (linksArray.length === 0) {
+                showMessage('Nenhum link válido encontrado. Por favor, insira links no formato correto.', 'error');
+                return;
+            }
 
-                // Exibe a área de resultados
-                resultArea.classList.remove('hidden');
-                thumbnailLinkInput.value = thumbnailLink;
-                thumbnailPreview.src = thumbnailLink; // Define a fonte da imagem de pré-visualização
-                showMessage('Link convertido com sucesso!', 'success');
+            let convertedCount = 0;
+            const allThumbnailLinks = [];
+
+            linksArray.forEach((originalLink, index) => {
+                // Expressão regular para extrair o ID do arquivo do Google Drive
+                const fileIdMatch = originalLink.match(/(?:id=|d\/)([a-zA-Z0-9_-]+)/);
+
+                if (fileIdMatch && fileIdMatch[1]) {
+                    const fileId = fileIdMatch[1];
+                    const thumbnailLink = `https://drive.google.com/thumbnail?sz=w1000&id=${fileId}`;
+                    allThumbnailLinks.push(thumbnailLink);
+                    convertedCount++;
+
+                    // Cria um elemento para cada resultado
+                    const resultItem = document.createElement('div');
+                    // Adiciona classes para o Flexbox: largura flexível e margem para espaçamento
+                    resultItem.classList.add('p-6', 'bg-gray-50', 'rounded-lg', 'border', 'border-gray-200', 'shadow-sm', 'w-full', 'sm:w-5/12', 'lg:w-1/3'); // Ajusta a largura para 2 ou 3 colunas em telas maiores
+                    resultItem.innerHTML = `
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Link ${index + 1}:</h3>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-medium mb-2">Link Original:</label>
+                            <input type="text" value="${originalLink}" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-text text-xs focus:outline-none" />
+                        </div>
+                        <div class="mb-4">
+                            <label for="thumbnailLink${index}" class="block text-gray-700 text-sm font-medium mb-2">Link da Miniatura:</label>
+                            <input
+                                type="text"
+                                id="thumbnailLink${index}"
+                                value="${thumbnailLink}"
+                                readonly
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-text focus:outline-none"
+                            />
+                        </div>
+                        <button
+                            data-link="${thumbnailLink}"
+                            class="copy-single-button w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 mb-4"
+                        >
+                            Copiar Este Link
+                        </button>
+                        <div class="mt-4 text-center">
+                            <p class="text-gray-700 text-sm font-medium mb-2">Pré-visualização:</p>
+                            <img
+                                src="${thumbnailLink}"
+                                alt="Pré-visualização da Miniatura"
+                                class="max-w-full h-auto rounded-lg shadow-md mx-auto border border-gray-300"
+                                onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Erro+ao+Carregar+Miniatura';"
+                            />
+                        </div>
+                    `;
+                    resultsContainer.appendChild(resultItem);
+                } else {
+                    // Mensagem de erro para links inválidos
+                    const errorItem = document.createElement('div');
+                    errorItem.classList.add('p-4', 'bg-red-100', 'text-red-700', 'rounded-lg', 'mb-4', 'text-sm', 'w-full'); // Garante que a mensagem de erro ocupe a largura total
+                    errorItem.textContent = `Erro: O link "${originalLink}" não parece ser um link válido do Google Drive.`;
+                    resultsContainer.appendChild(errorItem);
+                }
+            });
+
+            // Adiciona ouvintes de evento para os botões de copiar individuais
+            document.querySelectorAll('.copy-single-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const linkToCopy = event.target.dataset.link;
+                    copyToClipboard(linkToCopy, 'Link da miniatura copiado!', 'Erro ao copiar este link.');
+                });
+            });
+
+            if (convertedCount > 0) {
+                showMessage(`Convertidos ${convertedCount} de ${linksArray.length} links.`, 'success');
+                batchCopyArea.classList.remove('hidden'); // Mostra o botão de cópia em lote
             } else {
-                // Se o ID não for encontrado, exibe uma mensagem de erro
-                showMessage('Formato de link do Google Drive inválido. Por favor, verifique o link.', 'error');
-                resultArea.classList.add('hidden');
+                showMessage('Nenhum link válido foi convertido.', 'error');
             }
         });
 
-        // Adiciona um ouvinte de evento ao botão de copiar
-        copyButton.addEventListener('click', () => {
-            // Seleciona o texto no campo de link da miniatura
-            thumbnailLinkInput.select();
-            thumbnailLinkInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+        // Adiciona um ouvinte de evento ao botão de copiar todos os links
+        copyAllButton.addEventListener('click', () => {
+            const allLinks = Array.from(document.querySelectorAll('[id^="thumbnailLink"]'))
+                                .map(input => input.value)
+                                .join('\n'); // Junta os links com quebra de linha
 
-            try {
-                // Tenta copiar o texto para a área de transferência
-                document.execCommand('copy');
-                showMessage('Link da miniatura copiado para a área de transferência!', 'success');
-            } catch (err) {
-                // Em caso de erro ao copiar
-                showMessage('Erro ao copiar o link. Por favor, copie manualmente.', 'error');
-                console.error('Erro ao copiar: ', err);
+            if (allLinks) {
+                copyToClipboard(allLinks, 'Todos os links de miniatura copiados para a área de transferência!', 'Erro ao copiar todos os links.');
+            } else {
+                showMessage('Não há links de miniatura para copiar.', 'error');
             }
         });
     </script>
