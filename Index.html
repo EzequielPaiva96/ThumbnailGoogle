@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Miniaturas do Google Drive</title>
+    <!-- Inclui o Tailwind CSS para estilização fácil e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Cor de fundo suave */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+            Conversor de Miniaturas do Google Drive
+        </h1>
+
+        <div class="mb-6">
+            <label for="driveLink" class="block text-gray-700 text-sm font-medium mb-2">
+                Cole o link do Google Drive aqui:
+            </label>
+            <input
+                type="text"
+                id="driveLink"
+                placeholder="Ex: https://drive.google.com/file/d/1-YxGYx6eYBwQ3Rq1KlFYj5Kx3OLE4bKr/view?usp=drive_link"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+            />
+        </div>
+
+        <button
+            id="convertButton"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+        >
+            Converter para Miniatura
+        </button>
+
+        <div id="resultArea" class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Miniatura Gerada:</h2>
+
+            <div class="mb-4">
+                <label for="thumbnailLink" class="block text-gray-700 text-sm font-medium mb-2">
+                    Link da Miniatura:
+                </label>
+                <input
+                    type="text"
+                    id="thumbnailLink"
+                    readonly
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-text focus:outline-none"
+                />
+            </div>
+
+            <button
+                id="copyButton"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+            >
+                Copiar Link da Miniatura
+            </button>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-700 text-sm font-medium mb-2">Pré-visualização da Miniatura:</p>
+                <img
+                    id="thumbnailPreview"
+                    src=""
+                    alt="Pré-visualização da Miniatura"
+                    class="max-w-full h-auto rounded-lg shadow-md mx-auto border border-gray-300"
+                    onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Erro+ao+Carregar+Miniatura';"
+                />
+            </div>
+        </div>
+
+        <div id="messageBox" class="mt-6 p-4 rounded-lg text-center text-sm hidden"></div>
+    </div>
+
+    <script>
+        // Obtém referências aos elementos HTML
+        const driveLinkInput = document.getElementById('driveLink');
+        const convertButton = document.getElementById('convertButton');
+        const resultArea = document.getElementById('resultArea');
+        const thumbnailLinkInput = document.getElementById('thumbnailLink');
+        const copyButton = document.getElementById('copyButton');
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        const messageBox = document.getElementById('messageBox');
+
+        // Função para exibir mensagens ao usuário
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-blue-100', 'text-blue-700');
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                messageBox.classList.add('bg-blue-100', 'text-blue-700');
+            }
+            messageBox.classList.remove('hidden');
+        }
+
+        // Função para ocultar a caixa de mensagem
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+        // Adiciona um ouvinte de evento ao botão de conversão
+        convertButton.addEventListener('click', () => {
+            hideMessage(); // Oculta mensagens anteriores
+            const originalLink = driveLinkInput.value.trim();
+
+            // Verifica se o link não está vazio
+            if (!originalLink) {
+                showMessage('Por favor, insira um link do Google Drive.', 'error');
+                resultArea.classList.add('hidden');
+                return;
+            }
+
+            // Expressão regular para extrair o ID do arquivo do Google Drive
+            // Suporta links como:
+            // - https://drive.google.com/file/d/FILE_ID/view
+            // - https://drive.google.com/open?id=FILE_ID
+            // - https://docs.google.com/document/d/FILE_ID/edit
+            const fileIdMatch = originalLink.match(/(?:id=|d\/)([a-zA-Z0-9_-]+)/);
+
+            if (fileIdMatch && fileIdMatch[1]) {
+                const fileId = fileIdMatch[1];
+                // Constrói o novo link da miniatura
+                const thumbnailLink = `https://drive.google.com/thumbnail?sz=w1000&id=${fileId}`;
+
+                // Exibe a área de resultados
+                resultArea.classList.remove('hidden');
+                thumbnailLinkInput.value = thumbnailLink;
+                thumbnailPreview.src = thumbnailLink; // Define a fonte da imagem de pré-visualização
+                showMessage('Link convertido com sucesso!', 'success');
+            } else {
+                // Se o ID não for encontrado, exibe uma mensagem de erro
+                showMessage('Formato de link do Google Drive inválido. Por favor, verifique o link.', 'error');
+                resultArea.classList.add('hidden');
+            }
+        });
+
+        // Adiciona um ouvinte de evento ao botão de copiar
+        copyButton.addEventListener('click', () => {
+            // Seleciona o texto no campo de link da miniatura
+            thumbnailLinkInput.select();
+            thumbnailLinkInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+
+            try {
+                // Tenta copiar o texto para a área de transferência
+                document.execCommand('copy');
+                showMessage('Link da miniatura copiado para a área de transferência!', 'success');
+            } catch (err) {
+                // Em caso de erro ao copiar
+                showMessage('Erro ao copiar o link. Por favor, copie manualmente.', 'error');
+                console.error('Erro ao copiar: ', err);
+            }
+        });
+    </script>
+</body>
+</html>
