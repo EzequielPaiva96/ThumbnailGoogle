@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversor de Miniaturas do Google Drive</title>
-    <!-- Inclui o Tailwind CSS para estilização fácil e responsiva -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -30,7 +29,6 @@
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
-    <!-- Ajustei o max-w do container principal para 6xl para dar mais espaço em telas grandes -->
     <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-6xl">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
             Conversor de Miniaturas do Google Drive (Lote)
@@ -48,6 +46,20 @@ https://drive.google.com/file/d/1CTAcx3SjgyehyfH0kecrirCw0riCRT41/view?usp=drive
 https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive_link"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 resize-y"
             ></textarea>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-4">
+                <button
+                    id="pasteButton"
+                    class="w-full sm:w-1/2 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+                >
+                    Colar da Área de Transferência
+                </button>
+                <button
+                    id="clearButton"
+                    class="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75"
+                >
+                    Limpar Links
+                </button>
+            </div>
         </div>
 
         <button
@@ -57,10 +69,8 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
             Converter para Miniaturas
         </button>
 
-        <!-- Container para os resultados individuais, agora com Flexbox -->
         <div id="resultsContainer" class="mt-8 flex flex-wrap justify-center gap-6">
-            <!-- Os resultados individuais serão adicionados aqui pelo JavaScript -->
-        </div>
+            </div>
 
         <div id="batchCopyArea" class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200 hidden">
             <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">Opções de Cópia em Lote:</h2>
@@ -83,6 +93,8 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
         const batchCopyArea = document.getElementById('batchCopyArea');
         const copyAllButton = document.getElementById('copyAllButton');
         const messageBox = document.getElementById('messageBox');
+        const clearButton = document.getElementById('clearButton');
+        const pasteButton = document.getElementById('pasteButton');
 
         // Função para exibir mensagens ao usuário
         function showMessage(message, type = 'info') {
@@ -121,7 +133,7 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
                 document.body.removeChild(tempInput);
             }
         }
-        
+
         // Adiciona um ouvinte de evento ao botão de conversão
         convertButton.addEventListener('click', () => {
             hideMessage(); // Oculta mensagens anteriores
@@ -159,10 +171,17 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
                     // Cria um elemento para cada resultado
                     const resultItem = document.createElement('div');
                     // Adiciona classes para o Flexbox: largura flexível e margem para espaçamento
-                    // A classe 'sm:w-1/2' cria uma layout de 2 colunas em telas menores e a 'lg:w-1/3'
-                    // cria uma layout de 3 colunas em telas maiores, aproveitando melhor o espaço horizontal.
                     resultItem.classList.add('p-6', 'bg-gray-50', 'rounded-lg', 'border', 'border-gray-200', 'shadow-sm', 'w-full', 'sm:w-[48%]', 'lg:w-[31.5%]');
                     resultItem.innerHTML = `
+                        <div class="mt-4 text-center mb-4">
+                            <p class="text-gray-700 text-sm font-medium mb-2">Pré-visualização:</p>
+                            <img
+                                src="${thumbnailLink}"
+                                alt="Pré-visualização da Miniatura"
+                                class="max-w-full h-auto rounded-lg shadow-md mx-auto border border-gray-300"
+                                onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Erro+ao+Carregar+Miniatura';"
+                            />
+                        </div>
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">Link ${index + 1}:</h3>
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-medium mb-2">Link Original:</label>
@@ -180,25 +199,16 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
                         </div>
                         <button
                             data-link="${thumbnailLink}"
-                            class="copy-single-button w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 mb-4"
+                            class="copy-single-button w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
                         >
                             Copiar Este Link
                         </button>
-                        <div class="mt-4 text-center">
-                            <p class="text-gray-700 text-sm font-medium mb-2">Pré-visualização:</p>
-                            <img
-                                src="${thumbnailLink}"
-                                alt="Pré-visualização da Miniatura"
-                                class="max-w-full h-auto rounded-lg shadow-md mx-auto border border-gray-300"
-                                onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Erro+ao+Carregar+Miniatura';"
-                            />
-                        </div>
                     `;
                     resultsContainer.appendChild(resultItem);
                 } else {
                     // Mensagem de erro para links inválidos
                     const errorItem = document.createElement('div');
-                    errorItem.classList.add('p-4', 'bg-red-100', 'text-red-700', 'rounded-lg', 'mb-4', 'text-sm', 'w-full'); // Garante que a mensagem de erro ocupe a largura total
+                    errorItem.classList.add('p-4', 'bg-red-100', 'text-red-700', 'rounded-lg', 'mb-4', 'text-sm', 'w-full');
                     errorItem.textContent = `Erro: O link "${originalLink}" não parece ser um link válido do Google Drive.`;
                     resultsContainer.appendChild(errorItem);
                 }
@@ -222,6 +232,28 @@ https://drive.google.com/file/d/1qh6GXJO5zjP0Wfh7duU_CVtsw8K_on_X/view?usp=drive
             } else {
                 showMessage('Nenhum link válido foi convertido.', 'error');
             }
+        });
+
+        // Adiciona um ouvinte de evento ao botão de limpar
+        clearButton.addEventListener('click', () => {
+            driveLinksInput.value = '';
+            resultsContainer.innerHTML = '';
+            batchCopyArea.classList.add('hidden');
+            hideMessage();
+            showMessage('O campo de links foi limpo.', 'info');
+        });
+
+        // Adiciona um ouvinte de evento ao botão de colar
+        pasteButton.addEventListener('click', () => {
+            navigator.clipboard.readText()
+                .then(text => {
+                    driveLinksInput.value = text;
+                    showMessage('Conteúdo da área de transferência colado.', 'info');
+                })
+                .catch(err => {
+                    showMessage('Falha ao ler da área de transferência.', 'error');
+                    console.error('Falha ao ler da área de transferência: ', err);
+                });
         });
 
         // Adiciona um ouvinte de evento ao botão de copiar todos os links
